@@ -1,0 +1,23 @@
+Schedule:
+
+Task    Script  Report
+
+Frequencies Done    Pending
+
+ORF Finder  Pending Pending
+
+Distance Matrix Pending Pending
+
+Task list:
+
+ORF Finder:
+
+* Promoters
+* Terminators
+* Minimum Length
+* Maximum Length
+* BLAST on ORFs
+
+Distance Matrix:
+
+* Scoring criteria
