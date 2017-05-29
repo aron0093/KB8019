@@ -12,11 +12,8 @@ Task list:
 
 ORF Finder:
 
-* Promoters
-* Terminators
-* Minimum Length
-* Maximum Length
-* BLAST on ORFs
+* TSS loc
+* RBS length constraint
 
 Distance Matrix:
 
