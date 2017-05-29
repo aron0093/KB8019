@@ -186,6 +186,7 @@ print("--- %s seconds ---" % (time.time() - start_time))
 
 # This part of the code is in case we need to translate the sequences
 
+"""
 #comp_dic = {'A':'T', 'T':'A', 'G':'C', 'C':'G' }
 #rna_dic = {'A':'A', 'T':'U', 'G':'G', 'C':'C' }
 #prot_dic = {
@@ -208,7 +209,7 @@ print("--- %s seconds ---" % (time.time() - start_time))
 	}
 
 
-"""
+
 
 # Make the three reading frames (forward and reversed) and translate them into peptide sequence.
 # Resources used: http://biopython.org/DIST/docs/api/Bio.Seq.Seq-class.html#translate
