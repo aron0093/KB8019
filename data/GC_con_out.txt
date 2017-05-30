@@ -1,0 +1,5 @@
+Chlamydia trachomatis	0.41310357661530905
+Dictyoglomus turgidum	0.33957349802754966
+Mycobacterium tuberculosis	0.6560862123982427
+Rhodopirellula baltica	0.5548245515883228
+Saccharomyces cerevisiae	0.3850736902685855

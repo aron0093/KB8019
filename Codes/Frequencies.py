@@ -5,10 +5,19 @@ genome_fil = open (sys.argv [1])
 
 genome = pd.read_csv(genome_fil)
 
-
-chars = list(genome[genome.columns[0]].iloc[0])
+raw_chars = list(genome[genome.columns[0]].iloc[0])
 
 st_nuc = ['A', 'T', 'C', 'G']
+
+spec_dic = {'05': 'Chlamydia trachomatis', '08': 'Dictyoglomus turgidum', '14': 'Mycobacterium tuberculosis', '16': 'Rhodopirellula baltica', '25': 'Saccharomyces cerevisiae'}
+
+chars = []
+
+for char in raw_chars:
+
+    if char in st_nuc:
+    
+        chars.extend(char)
 
 # Nucleotide frequencies
 
@@ -39,7 +48,7 @@ print('\n')
 
 for k, v in nuc_freq.items():
 
-    open('nuc_freq_out.txt', 'a').write(genome.columns[0][3:5]+'\t'+k+'\t'+str(v)+'\n')
+    open('nuc_freq_out.txt', 'a').write(spec_dic[genome.columns[0][3:5]]+'\t'+k+'\t'+str(v)+'\n')
 
 # Dinucleotide frequencies
 
@@ -66,13 +75,13 @@ print('\n')
 
 for k, v in dinuc_freq.items():
 
-    open('dinuc_freq_out.txt', 'a').write(genome.columns[0][3:5]+'\t'+k+'\t'+str(v)+'\n')
+    open('dinuc_freq_out.txt', 'a').write(spec_dic[genome.columns[0][3:5]]+'\t'+k+'\t'+str(v)+'\n')
     
 # GC content
 
 print('GC content is ', (nuc_freq['G']+nuc_freq['C']))
 
-open('GC_con_out.txt', 'a').write(genome.columns[0][3:5]+'\t'+str(nuc_freq['G']+nuc_freq['C'])+'\n')
+open('GC_con_out.txt', 'a').write(spec_dic[genome.columns[0][3:5]]+'\t'+str(nuc_freq['G']+nuc_freq['C'])+'\n')
 
 # Amino acid freq
 
@@ -106,7 +115,7 @@ for frames in translation:
     
     for k, v in anal.items():
 
-        open('anal_out.txt', 'a').write(genome.columns[0][3:5]+'\t'+str(f_count)+'\t'+k+'\t'+str(v)+'\n')
+        open('anal_out.txt', 'a').write(spec_dic[genome.columns[0][3:5]]+'\t'+str(f_count)+'\t'+k+'\t'+str(v)+'\n')
     
     diamino_freq = {}
     
@@ -129,7 +138,7 @@ for frames in translation:
 
     for k, v in diamino_freq.items():
 
-        open('diamino_freq_out.txt', 'a').write(genome.columns[0][3:5]+'\t'+str(f_count)+'\t'+k+'\t'+str(v)+'\n')
+        open('diamino_freq_out.txt', 'a').write(spec_dic[genome.columns[0][3:5]]+'\t'+str(f_count)+'\t'+k+'\t'+str(v)+'\n')
 
 
 
