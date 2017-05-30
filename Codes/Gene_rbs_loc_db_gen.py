@@ -39,7 +39,7 @@ if genome_type == '1':
         
         if frame[:-4] == 'ATGG' and frame[3] == 'A':
     
-            alignment = pw2.align.globalms("GCCACCATGG", frame, 2,0,-1,-1)   # Max score 20
+            alignment = pw2.align.globalms("GCCACCATGG", frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 20
 
             align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
             
@@ -63,7 +63,7 @@ if genome_type == '1':
         
         if frame[:-4] == 'ATGG' and frame[3] == 'G':
     
-            alignment = pw2.align.globalms("GCCGCCATGG", frame, 2,0,-1,-1)   # Max score 20
+            alignment = pw2.align.globalms("GCCGCCATGG", frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 20
 
             align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
             
@@ -97,7 +97,7 @@ elif genome_type == '0':
         
         # First
         
-        alignment = pw2.align.globalms("AGGAGG", frame, 2,0,-1,-1)     # Max Score 12
+        alignment = pw2.align.globalms("AGGAGG", frame, 2,0,-1,-1,one_alignment_only = True)     # Max Score 12
 
         align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
         

@@ -45,7 +45,7 @@ if genome_type == '1':
         
         if frame[:4] == 'TATA':
     
-            alignment = pw2.align.globalms("TATAAA", frame, 2,0,-1,-1)   # Max score 12  
+            alignment = pw2.align.globalms("TATAAA", frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 12  
 
             align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
             
@@ -72,7 +72,7 @@ if genome_type == '1':
         
         if frame[0] == 'G' or frame[0] == 'A' and frame[3:7] == 'CCAA':
         
-            alignment = pw2.align.globalms("GGCCAATCT", frame, 2,0,-1,-1)     # Max score 18
+            alignment = pw2.align.globalms("GGCCAATCT", frame, 2,0,-1,-1,one_alignment_only = True)     # Max score 18
 
             align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
             
@@ -108,7 +108,7 @@ elif genome_type == '0':
         
         # First
         
-        alignment = pw2.align.globalms("TATAAT", frame, 2,0,-1,-1)     # Max Score 12
+        alignment = pw2.align.globalms("TATAAT", frame, 2,0,-1,-1,one_alignment_only = True)     # Max Score 12
 
         align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
         
@@ -128,7 +128,7 @@ elif genome_type == '0':
         
         # Second
     
-        alignment = pw2.align.globalms("TTGACA", frame, 2,0,-1,-1)     # Max Score 12
+        alignment = pw2.align.globalms("TTGACA", frame, 2,0,-1,-1,one_alignment_only = True)     # Max Score 12
 
         align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
         
