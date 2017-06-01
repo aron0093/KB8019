@@ -2,23 +2,19 @@ Schedule:
 
 Task    Script  Report
 
-Frequencies Done    Pending
+Frequencies Done    Done
 
-ORF Finder  Pending Pending
+ORF Finder  Done WIP
 
-Distance Matrix Pending Pending
+Distance Matrix Done WIP
 
 Task list:
 
 ORF Finder:
 
-* TSS loc
-* RBS length constraint
-* Promoters database
-* RBS Database
-* ATG_STOP generator database Done
-* Final ORF Finder
+*
 
 Distance Matrix:
 
-* Scoring criteria
+*
+

@@ -25,161 +25,626 @@ from Bio.pairwise2 import format_alignment
 
 genome_fil = sys.argv[1]
 
-genome = SeqIO.read(open(fname), "fasta")
-genome_name = genome_fil.partition('.')[0]
+genome_type = input('Select genome type :   1 - Eukaryotic   0 - Prokaryotic ')
 
-		####### FORWARD STRAND #######
+genome_record = SeqIO.read(open(genome_fil), "fasta")
+
+genome = genome_record.seq
+
+reverse_genome  = genome.reverse_complement()
+
+species = genome_fil.partition('.')[0]
+
+species_dic = {'05': 'Chlamydia trachomatis', '08': 'Dictyoglomus turgidum', '14': 'Mycobacterium tuberculosis', '16': 'Rhodopirellula baltica', '25': 'Saccharomyces cerevisiae'}
+
+
+
+out_file = open(species+'_orfs.fasta', 'a')
 
 start_time = time.time()
 
-print('Forward direction...')
+if genome_type == '1':
 
-blah = []
-prot=''
+        ####### FORWARD STRAND #######
 
-# List to store the ORFs found in the forward direction no matter at which Reading Frame that is provided by the list below (fRF)
+    print('Forward direction...')
 
-forwardORFseq=[]  
+    # List to store the ORFs found in the forward direction no matter at which Reading Frame that is provided by the list below (fRF)
 
-## List to store the accepted ORFs shorter than a given minimum length
-#shortforwardORFseq = [] 
-## This is just to store them separatedly from the longest ones
-#shortfRF= []
+    # Reading Frame Positions Series --> y[RF+(j = 1,2,3)] = y[0]RFj + 3
+    
+    # Reading Frame +1: 0, 3, 6, 9... so, for y being the base position, y[0] = 0 --> RF+1 when y % 3 == 0
+    # Reading Frame +2: 1, 4, 7, 10...so, for y being the base position, y[0] = 1 --> RF+1 when y % 3 == 1
+    # Reading Frame +3: 2, 5, 8, 11...so, for y being the base position, y[0] = 2 --> RF+1 when y % 3 == 2
 
-# Reading Frame Positions Series --> y[RF+(j = 1,2,3)] = y[0]RFj + 3
-# Reading Frame +1: 0, 3, 6, 9... so, for y being the base position, y[0] = 0 --> RF+1 when y % 3 == 0
-# Reading Frame +2: 1, 4, 7, 10...so, for y being the base position, y[0] = 1 --> RF+1 when y % 3 == 1
-# Reading Frame +3: 2, 5, 8, 11...so, for y being the base position, y[0] = 2 --> RF+1 when y % 3 == 2
+    ORF_name_counter = 0
+    tata_begin  = 0
+    caat_begin  = 0
+    kozak_a_begin = 0
+    kozak_b_begin = 0
+    
+    
+    for y in range(0,len(genome)-2):
+    
+    # Proto ORF positions
 
-ORFcoord_frame_forward = list() #Store ORF coordinates (begin, end) and reading frame
+        begin = genome[y]+genome[y+1]+genome[y+2]
+        
+        if begin =='ATG':
 
-for y in range(0,len(sequence)-2):
+            ORF_begin = y
+   
+            actualRF = (y%3)+1 # actualRF is the Reading Frame corresponding to the ORF we have found
+                      
+            for x in range(y,(len(genome)-2),3):
+            
+                codon=genome[x]+genome[x+1]+genome[x+2]
 
-	begin = sequence[y]+sequence[y+1]+sequence[y+2]
-	if begin !='ATG':
+                if codon in ['TAA', 'TAG', 'TGA']:
+                
+                    ORF_end = x
+                    
+                    break
+                    
+    # Length check and search space definitions            
+                                
+            if ORF_end-ORF_begin  >= 100: #len(prot) >= 100:
+            
+                if ORF_begin >= 99: 
+            
+                    promo_search_space = range((ORF_begin-99), ORF_begin-34)
+                                
+                else:
+                
+                    promo_search_space = range(0, ORF_begin-34)
+                    
+                if ORF_begin >= 19: 
+            
+                    rbs_search_space = range((ORF_begin-19), ORF_begin+19)
+                                
+                else:
+                
+                    rbs_search_space = range(0, ORF_end+19)  
+                    
+    # Check for promoters                
+                                    
+                for i in promo_search_space: 
+                
+                # Check TATA
 
-		ORF_begin = y
-		
-		if y % 3 == 0:
-			actualRF = 1 # actualRF is the Reading Frame corresponding to the ORF we have found
-		elif y % 3 == 1:
-			actualRF = 2
-		elif y % 3 == 2:
-			actualRF = 3
-		continue
-	else:
-		for x in range(y,(len(sequence)-2),3):
-			codon=sequence[x]+sequence[x+1]+sequence[x+2]
+                    tata_frame = str(genome[i:i+6])
+        
+                    if tata_frame[:4] == 'TATA':
 
-			if codon in ['TAA', 'TAG', 'TGA']:
-				ORF_end = x
-				break
+                        alignment = pw2.align.globalms("TATAAA", tata_frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 12  
 
-			blah.append(codon)
+                        align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
+                        
+                        if int(align_data[17:]) >= 10:
+                        
+                            tata_begin = i
+                            
+                # Check CAAT
+                    
+                    caat_frame = str(genome[i:i+9])
+        
+                    if caat_frame[0] == 'G' or caat_frame[0] == 'A' and caat_frame[3:7] == 'CCAA':            
+                  
+                        alignment = pw2.align.globalms("GGCCAATCT", caat_frame, 2,0,-1,-1,one_alignment_only = True)     # Max score 18
 
-		prot=''.join(blah)
-	if prot=='':
-		print ("No start codon found")
-	else:
-		
-		if ORF_end-ORF_begin  >= 100: #len(prot) >= 100: 
-			ORFcoord_frame_forward.append([ORF_begin+1,ORF_end,actualRF])
-			forwardORFseq.append(prot)
+                        align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
+                
+                        if int(align_data[23:]) >= 10:
+                
+                            caat_begin  = i 
+                              
+    # Check RBS
+                
+                for j in rbs_search_space:
+                
+                # First Kozak
+                
+                    rbs_frame = str(genome[j:j+10])
+                            
+                    if rbs_frame[:-4] == 'ATGG' and rbs_frame[3] == 'A':
 
-		prot=''
-		blah=[]
+                        alignment = pw2.align.globalms("GCCACCATGG", rbs_frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 20
 
-print ("Total number of possible ORFs is ", len(forwardORFseq))
+                        align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))        
+                            
+                        if int(align_data[25:]) >= 12:    
+                            
+                            kozak_a_begin  = 10
+                            
+                    if rbs_frame[:-4] == 'ATGG' and rbs_frame[3] == 'G':
 
-# Save forwards ORFs coordinates into a file
+                        alignment = pw2.align.globalms("GCCGCCATGG", rbs_frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 20
 
-orf_count = 0
-with open(genome_name + '_ORFs_forward.txt', 'w') as output: 
+                        align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))        
+                            
+                        if int(align_data[25:]) >= 12:    
+                            
+                            kozak_b_begin  = 10        
+                   
+   # Output Orfs
+   
+                score = 0            
+                                 
+                if tata_begin > 0:
+                                
+                    score += 1
+                                 
+                if caat_begin > 0:
+                
+                    score += 1
+                 
+                if kozak_a_begin > 0 or kozak_b_begin > 0:
+                
+                    score += 1
+                    
+                if score > 0 and tata_begin > 0:
+                            
+                    out_file.write('> '+species+'_RF'+str(actualRF)+'_Sco_'+str(score)+'_ORF'+str(ORF_name_counter)+'\n')
+                    out_file.write(str(genome[ORF_begin:ORF_end])+'\n')
+                    
+                    ORF_name_counter += 1
+                    
+                elif score > 0 and caat_begin > 0: 
+                
+                    out_file.write('> '+species+'_RF'+str(actualRF)+'_Sco_'+str(score)+'_ORF'+str(ORF_name_counter)+'\n')
+                    out_file.write(str(genome[ORF_begin:ORF_end])+'\n')
+                    
+                    ORF_name_counter += 1
+                    
+                elif score > 0:
+                
+                    out_file.write('> '+species+'_RF'+str(actualRF)+'_Sco_'+str(score)+'_ORF'+str(ORF_name_counter)+'\n')
+                    out_file.write(str(genome[ORF_begin:ORF_end])+'\n')
+                    
+                    ORF_name_counter += 1
+        
 
-	for coord_Frame in ORFcoord_frame_forward: #Writting forward ORFs by coordinates
+    print("--- %s seconds ---" % (time.time() - start_time))
 
-		orf_count = orf_count + 1
+               ####### REVERSED STRAND #######
 
-		ORFname = [genome_name,'RF'+str(coord_Frame[2]),'ORF'+str(orf_count)]
-		ORFname =  '_'.join(ORFname)
+    print('Reversed direction...')
+    
 
-		output.write("{}\t{}\t{}\n".format(ORFname,coord_Frame[0],coord_Frame[1]))
+    tata_begin  = 0
+    caat_begin  = 0
+    kozak_a_begin = 0
+    kozak_b_begin = 0
+    
+
+    for y in range(0,len(reverse_genome)-2):
+    
+    # Proto ORF positions
+
+        begin = reverse_genome[y]+reverse_genome[y+1]+reverse_genome[y+2]
+        
+        if begin =='ATG':
+
+            ORF_begin = y
+   
+            actualRF = (y%3)+1 # actualRF is the Reading Frame corresponding to the ORF we have found
+                    
+            for x in range(y,(len(reverse_genome)-2),3):
+            
+                codon=reverse_genome[x]+reverse_genome[x+1]+reverse_genome[x+2]
+
+                if codon in ['TAA', 'TAG', 'TGA']:
+                
+                    ORF_end = x
+                    
+                    break
+                    
+        # Length check and search space definitions            
+                                    
+            if ORF_end-ORF_begin  >= 100: #len(prot) >= 100:
+            
+                if ORF_begin >= 99: 
+            
+                    promo_search_space = range((ORF_begin-99), ORF_begin-34)
+                                
+                else:
+                
+                    promo_search_space = range(0, ORF_begin-34)
+                    
+                if ORF_begin >= 19: 
+            
+                    rbs_search_space = range((ORF_begin-19), ORF_begin+19)
+                                
+                else:
+                
+                    rbs_search_space = range(0, ORF_end+19)  
+                    
+    # Check for promoters                
+                                    
+                for i in promo_search_space: 
+                
+                # Check TATA
+
+                    tata_frame = str(genome[i:i+6])
+        
+                    if tata_frame[:4] == 'TATA':
+
+                        alignment = pw2.align.globalms("TATAAA", tata_frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 12  
+
+                        align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
+                        
+                        if int(align_data[17:]) >= 10:
+                        
+                            tata_begin = i
+                            
+                # Check CAAT
+                    
+                    caat_frame = str(genome[i:i+9])
+        
+                    if caat_frame[0] == 'G' or caat_frame[0] == 'A' and caat_frame[3:7] == 'CCAA':            
+                  
+                        alignment = pw2.align.globalms("GGCCAATCT", caat_frame, 2,0,-1,-1,one_alignment_only = True)     # Max score 18
+
+                        align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
+                
+                        if int(align_data[23:]) >= 10:
+                
+                            caat_begin  = i 
+                              
+    # Check RBS
+                
+                for j in rbs_search_space:
+                
+                # First Kozak
+                
+                    rbs_frame = str(genome[j:j+10])
+                            
+                    if rbs_frame[:-4] == 'ATGG' and rbs_frame[3] == 'A':
+
+                        alignment = pw2.align.globalms("GCCACCATGG", rbs_frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 20
+
+                        align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))        
+                            
+                        if int(align_data[25:]) >= 12:    
+                            
+                            kozak_a_begin  = 10
+                            
+                    if rbs_frame[:-4] == 'ATGG' and rbs_frame[3] == 'G':
+
+                        alignment = pw2.align.globalms("GCCGCCATGG", rbs_frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 20
+
+                        align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))        
+                            
+                        if int(align_data[25:]) >= 12:    
+                            
+                            kozak_b_begin  = 10        
+                           
+       # Output Orfs
+       
+       
+                score = 0            
+                                 
+                if tata_begin > 0:
+                                
+                    score += 1
+                                 
+                if caat_begin > 0:
+                
+                    score += 1
+                 
+                if kozak_a_begin > 0 or kozak_b_begin > 0:
+                
+                    score += 1
+                    
+                if score > 0 and tata_begin > 0:
+                            
+                    out_file.write('> '+species+'_RF'+str(actualRF)+'_Sco_'+str(score)+'_ORF'+str(ORF_name_counter)+'_rev'+'\n')
+                    out_file.write(str(reverse_genome[ORF_begin:ORF_end])+'\n')
+                    
+                    ORF_name_counter += 1
+                    
+                elif score > 0 and caat_begin > 0: 
+                
+                    out_file.write('> '+species+'_RF'+str(actualRF)+'_Sco_'+str(score)+'_ORF'+str(ORF_name_counter)+'_rev'+'\n')
+                    out_file.write(str(reverse_genome[ORF_begin:ORF_end])+'\n')
+                    
+                    ORF_name_counter += 1
+                    
+                elif score > 0:
+                
+                    out_file.write('> '+species+'_RF'+str(actualRF)+'_Sco_'+str(score)+'_ORF'+str(ORF_name_counter)+'_rev'+'\n')
+                    out_file.write(str(reverse_genome[ORF_begin:ORF_end])+'\n')
+                    
+                    ORF_name_counter += 1
+                
+
+    print("--- %s seconds ---" % (time.time() - start_time))
+
+elif genome_type == '0':
+
+    print('Forward direction...')
+
+    # List to store the ORFs found in the forward direction no matter at which Reading Frame that is provided by the list below (fRF)
+
+    # Reading Frame Positions Series --> y[RF+(j = 1,2,3)] = y[0]RFj + 3
+    
+    # Reading Frame +1: 0, 3, 6, 9... so, for y being the base position, y[0] = 0 --> RF+1 when y % 3 == 0
+    # Reading Frame +2: 1, 4, 7, 10...so, for y being the base position, y[0] = 1 --> RF+1 when y % 3 == 1
+    # Reading Frame +3: 2, 5, 8, 11...so, for y being the base position, y[0] = 2 --> RF+1 when y % 3 == 2
+
+    ORF_name_counter = 0
+    promo_a_begin  = 0
+    promo_b_begin = 0
+    tle_begin = 0
+    
+
+    for y in range(0,len(genome)-2):
+    
+    # Proto ORF positions
+
+        begin = genome[y]+genome[y+1]+genome[y+2]
+        
+        if begin =='ATG':
+
+            ORF_begin = y
+   
+            actualRF = (y%3)+1 # actualRF is the Reading Frame corresponding to the ORF we have found
+                     
+            for x in range(y,(len(genome)-2),3):
+            
+                codon=genome[x]+genome[x+1]+genome[x+2]
+
+                if codon in ['TAA', 'TAG', 'TGA']:
+                
+                    ORF_end = x
+                    
+                    break
+                    
+        # Length check and search space definitions            
+                                    
+            if ORF_end-ORF_begin  >= 100: #len(prot) >= 100:
+            
+                if ORF_begin >= 99: 
+            
+                    promo_search_space = range((ORF_begin-99), ORF_begin-34)
+                                
+                else:
+                
+                    promo_search_space = range(0, ORF_begin-34)
+                    
+                if ORF_begin >= 7: 
+            
+                    rbs_search_space = range((ORF_begin-7), ORF_begin+7)
+                                
+                else:
+                
+                    rbs_search_space = range(0, ORF_end+7)  
+                    
+    # Check for promoters                
+                                    
+                for i in promo_search_space: 
+                
+                # Check Pribnow
+
+                    promo_frame = str(genome[i:i+6])
+        
+                    alignment_a = pw2.align.globalms("TATAAT", promo_frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 12  
+
+                    align_data_a = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment_a[0]))
+                    
+                    alignment_b = pw2.align.globalms("TTGACA", promo_frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 12  
+
+                    align_data_b = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment_b[0]))
+                        
+                    if int(align_data_a[17:]) >= 10:
+                    
+                        promo_a_begin = i 
+                    
+                    if int(align_data_b[17:]) >= 10:
+                        
+                        promo_b_begin = i                          
+                              
+    # Check TLE
+                
+                for j in rbs_search_space:
+                               
+                    tle_frame = str(genome[j:j+6])
+                              
+                    alignment = pw2.align.globalms("AGGAGG", tle_frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 20
+
+                    align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))        
+                            
+                    if int(align_data[17:]) >= 10:    
+                            
+                        tle_begin  = 10
+                                
+                           
+       # Output Orfs
+       
+                score = 0            
+                                 
+                if promo_a_begin > 0:
+                                
+                    score += 1
+                
+                if promo_b_begin > 0:
+                                
+                    score += 1
+                                            
+                if tle_begin > 0:
+                
+                    score += 1
+                    
+                if score > 0 and promo_a_begin > 0:
+                            
+                    out_file.write('> '+species+'_RF'+str(actualRF)+'_Sco_'+str(score)+'_ORF'+str(ORF_name_counter)+'\n')
+                    out_file.write(str(genome[ORF_begin:ORF_end])+'\n')
+                    
+                    ORF_name_counter += 1
+                    
+                elif score > 0 and promo_b_begin > 0:
+                            
+                    out_file.write('> '+species+'_RF'+str(actualRF)+'_Sco_'+str(score)+'_ORF'+str(ORF_name_counter)+'\n')
+                    out_file.write(str(genome[ORF_begin:ORF_end])+'\n')
+                    
+                    ORF_name_counter += 1
+                    
+                elif score > 0 and tle_begin > 0: 
+                
+                    out_file.write('> '+species+'_RF'+str(actualRF)+'_Sco_'+str(score)+'_ORF'+str(ORF_name_counter)+'\n')
+                    out_file.write(str(genome[ORF_begin:ORF_end])+'\n')
+                    
+                    ORF_name_counter += 1
+                    
+
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 
-print("--- %s seconds ---" % (time.time() - start_time))
+               ####### REVERSED STRAND #######
 
-       	####### REVERSED STRAND #######
+    print('Reversed direction...')
 
-print('Reversed direction...')
-start_time = time.time()
-sequence = sequence[::-1]
-ORFcoord_frame_reversed = list()
-#shortORF_coord_reversed= list()
-# Repeat the same for the reversed strand
-blah = []
-prot=''
+    # List to store the ORFs found in the forward direction no matter at which Reading Frame that is provided by the list below (fRF)
 
-reversedORFseq=[]  
+    # Reading Frame Positions Series --> y[RF+(j = 1,2,3)] = y[0]RFj + 3
+    
+    # Reading Frame +1: 0, 3, 6, 9... so, for y being the base position, y[0] = 0 --> RF+1 when y % 3 == 0
+    # Reading Frame +2: 1, 4, 7, 10...so, for y being the base position, y[0] = 1 --> RF+1 when y % 3 == 1
+    # Reading Frame +3: 2, 5, 8, 11...so, for y being the base position, y[0] = 2 --> RF+1 when y % 3 == 2
 
 
-## List to store the accepted ORFs shorter than a given minimum length
-#shortreversedORFseq = [] 
-## This is just to store them separatedly from the longest ones
-#shortrRF= []
+    promo_a_begin  = 0
+    promo_b_begin = 0
+    tle_begin = 0
+    
 
-for y in range(0,len(sequence)-2):
+    for y in range(0,len(reverse_genome)-2):
+    
+    # Proto ORF positions
+
+        begin = reverse_genome[y]+reverse_genome[y+1]+reverse_genome[y+2]
+        
+        if begin =='ATG':
+
+            ORF_begin = y
+   
+            actualRF = (y%3)+1 # actualRF is the Reading Frame corresponding to the ORF we have found
+                       
+            for x in range(y,(len(reverse_genome)-2),3):
+            
+                codon=reverse_genome[x]+reverse_genome[x+1]+reverse_genome[x+2]
+
+                if codon in ['TAA', 'TAG', 'TGA']:
+                
+                    ORF_end = x
+                    
+                    break
+                    
+        # Length check and search space definitions            
+                                
+            if ORF_end-ORF_begin  >= 100: #len(prot) >= 100:
+            
+                if ORF_begin >= 99: 
+            
+                    promo_search_space = range((ORF_begin-99), ORF_begin-34)
+                                
+                else:
+                
+                    promo_search_space = range(0, ORF_begin-34)
+                    
+                if ORF_begin >= 7: 
+            
+                    rbs_search_space = range((ORF_begin-7), ORF_begin+7)
+                                
+                else:
+                
+                    rbs_search_space = range(0, ORF_end+7)  
+                    
+    # Check for promoters                
+                                    
+                for i in promo_search_space: 
+                
+                # Check Pribnow
+
+                    promo_frame = genome[i:i+6]
+        
+                    alignment_a = pw2.align.globalms("TATAAT", promo_frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 12  
+
+                    align_data_a = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
+                    
+                    alignment_b = pw2.align.globalms("TTGACA", promo_frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 12  
+
+                    align_data_b = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))
+                        
+                    if int(align_data_a[17:]) >= 10:
+                    
+                        promo_a_begin = i 
+                    
+                    if int(align_data_b[17:]) >= 10:
+                        
+                        promo_b_begin = i                          
+                              
+    # Check TLE
+                
+                for j in rbs_search_space:
+                               
+                    rbs_frame = genome[j:j+6]
+                              
+                    alignment = pw2.align.globalms("AGGAGG", rbs_frame, 2,0,-1,-1,one_alignment_only = True)   # Max score 20
+
+                    align_data = re.sub('[^A-Za-z0-9]+', '', format_alignment(*alignment[0]))        
+                            
+                    if int(align_data[17:]) >= 10:    
+                            
+                        tle_begin  = 10
+                                
+                       
+       # Output Orfs
+       
+                score = 0            
+                                 
+                if promo_a_begin > 0:
+                                
+                    score += 1
+                
+                if promo_b_begin > 0:
+                                
+                    score += 1
+                                            
+                if tle_begin > 0:
+                
+                    score += 1
+                    
+                if score > 0 and promo_a_begin > 0:
+                            
+                    out_file.write('> '+species+'_RF'+str(actualRF)+'_Sco_'+str(score)+'_ORF'+str(ORF_name_counter)+'_rev'+'\n')
+                    out_file.write(str(reverse_genome[ORF_begin:ORF_end])+'\n')
+                    
+                    ORF_name_counter += 1
+                    
+                elif score > 0 and promo_b_begin > 0:
+                            
+                    out_file.write('> '+species+'_RF'+str(actualRF)+'_Sco_'+str(score)+'_ORF'+str(ORF_name_counter)+'_rev'+'\n')
+                    out_file.write(str(reverse_genome[ORF_begin:ORF_end])+'\n')
+                    
+                    ORF_name_counter += 1
+                    
+                elif score > 0 and tle_begin > 0: 
+                
+                    out_file.write('> '+species+'_RF'+str(actualRF)+'_Sco_'+str(score)+'_ORF'+str(ORF_name_counter)+'_rev'+'\n')
+                    out_file.write(str(reverse_genome[ORF_begin:ORF_end])+'\n')
+                    
+                    ORF_name_counter += 1
+                        
+
+    print("--- %s seconds ---" % (time.time() - start_time))
+    
+else:
+
+    print('Genome type not recognised! Please try again')
 
 
-	begin = sequence[y]+sequence[y+1]+sequence[y+2]
-	if begin !='ATG':
-
-		ORF_begin = y
-		if y % 3 == 0:
-			actualRF = 1 # actualRF is the Reading Frame corresponding to the ORF we have found
-		elif y % 3 == 1:
-			actualRF = 2
-		elif y % 3 == 2:
-			actualRF = 3
-		continue
-	else:
-		for x in range(y,(len(sequence)-2),3):
-			codon=sequence[x]+sequence[x+1]+sequence[x+2]
-
-			if codon in ['TAA', 'TAG', 'TGA']:
-				ORF_end = x
-				break
-
-			blah.append(codon)
-
-		prot=''.join(blah)
-	if prot=='':
-		print ("No start codon found")
-	else:
-		
-		if ORF_end-ORF_begin  >= 100: #len(prot) >= 100: 
-			ORFcoord_frame_reversed.append([ORF_begin+1,ORF_end,actualRF])
-			reversedORFseq.append(prot)
-
-		prot=''
-		blah=[]
-print ("Total number of possible ORFs is ", len(reversedORFseq))
-#print ("Total number of short possible ORFs (50 to 100 bp.) ", len(shortreversedORFseq))
-
-# Save reversed ORFs coordinates into a file
-
-orf_count = 0
-with open(genome_name + '_ORFs_reversed.txt', 'w') as output: 
-
-	for coord_Frame in ORFcoord_frame_reversed: #Writting reversed ORFs by coordinates
-
-		orf_count = orf_count + 1
-
-		ORFname = [genome_name,'RF'+str(coord_Frame[2]),'ORF'+str(orf_count),'rev']
-		ORFname =  '_'.join(ORFname)
-
-		output.write("{}\t{}\t{}\n".format(ORFname,coord_Frame[0],coord_Frame[1]))
-
-print("--- %s seconds ---" % (time.time() - start_time))
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 ##################################################################
 
@@ -205,7 +670,7 @@ print("--- %s seconds ---" % (time.time() - start_time))
     'TTC':'F', 'TTT':'F', 'TTA':'L', 'TTG':'L',
     'TAC':'Y', 'TAT':'Y', 'TAA':'*', 'TAG':'*',
     'TGC':'C', 'TGT':'C', 'TGA':'*', 'TGG':'W',
-	}
+    }
 
 
 
@@ -225,11 +690,11 @@ forwardpept = [[] for x in range(len(forwardRFs))] # List of lists to save pepti
 
 for framenumber in range(len(forwardRFs)):
 
-	frame = forwardRFs[framenumber]
+    frame = forwardRFs[framenumber]
 
-	for peptide in frame.split('*'): #Split the translated sequences when there is a stopcodon
-		if len(peptide) > 30:
-			forwardpept[framenumber].append(peptide)
+    for peptide in frame.split('*'): #Split the translated sequences when there is a stopcodon
+        if len(peptide) > 30:
+            forwardpept[framenumber].append(peptide)
 
 
 
@@ -241,11 +706,11 @@ reversedpept = [[] for x in range(len(reversedRFs))] # List of lists to save pep
 
 for framenumber in range(len(reversedRFs)):
 
-	frame = reversedRFs[framenumber]
+    frame = reversedRFs[framenumber]
 
-	for peptide in frame.split('*'): #Split the translated sequences when there is a stopcodon
-		if len(peptide) > 30:
-			reversedpept[framenumber].append(peptide)
+    for peptide in frame.split('*'): #Split the translated sequences when there is a stopcodon
+        if len(peptide) > 30:
+            reversedpept[framenumber].append(peptide)
 
 """
 

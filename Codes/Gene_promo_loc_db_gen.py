@@ -100,7 +100,7 @@ elif genome_type == '0':
 
     out_data = pd.DataFrame(columns = ['Promoter', 'Alignment', 'Score', 'Start Pos', 'End Pos', 'Directionality', 'Frame' ], index = list(range(2*len(genome)-12)))
 
-    for i in range(0, len(genome)-6): # For both Pibnow boxes
+    for i in range(0, len(genome)-6): # For both Pribnow boxes
     
         rf = (i%3)+1
         
