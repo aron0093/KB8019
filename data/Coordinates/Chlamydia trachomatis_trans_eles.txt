@@ -1,0 +1,1 @@
+Translation linked elements	Alignment	Score	Start Pos	End Pos	Directionality	Frame
