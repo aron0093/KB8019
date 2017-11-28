@@ -1,1 +1,2 @@
 Papers/ data/ KB8019/ linguist-vendored
+*.py linguist-language=Python
